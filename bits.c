@@ -189,7 +189,7 @@ int copyByteWithin(int x, int src, int dst) {
   int y=x>>(src<<3);
   y=y&0xFF;
   x=x&~(0xFF<<(dst<<3));
-  x=x+y<<(dst<<3);
+  x=x+(y<<(dst<<3));
   return x;
 }
 
@@ -203,7 +203,8 @@ int copyByteWithin(int x, int src, int dst) {
  *   Rating: 4
  */
 int logicalShift(int x, int n) {
-  return (x>>n)&~(~0<<(32+~n+1));
+  int t = (~n+1)&31;
+  return (x>>n)&~(~0<<t);
 }
 
 // P6
@@ -678,8 +679,11 @@ int bitCount(int x) {
     x = (x & mask2) + ((x >> 2) & mask2);
     x = (x & mask3) + ((x >> 4) & mask3);
 
-    x = (x & 0x00FF00FF) + ((x >> 8) & 0x00FF00FF);
-    x = (x & 0x0000FFFF) + (x >> 16);
+    int a = 0xFF | (0xFF<<16);
+    int b = 0xFF | (0xFF<<8);
+
+    x = (x & a) + ((x >> 8) & a);
+    x = (x & b) + (x >> 16);
 
     return x;
 }
