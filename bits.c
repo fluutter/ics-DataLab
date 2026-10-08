@@ -284,20 +284,13 @@ int rotateRightBits(int x, int n) {
  *   Rating: 5
  */
 int roundEvenPow2(int x, int n) {
-    int r = x & ~(~0 << n);          // 余数：x 的最低 n 位
+    int r = x & ~(~0 << n);  //余数：x 的最低 n 位
+    int down = x + (~r + 1);  //x-r 向下取整
+    int half = 1 << (n + ~0);  //2^(n-1)
 
-    int down = x + (~r + 1);        // x - r，向下取整
-
-    int half = 1 << (n + ~0);       // 2^(n-1)
-
-    int guard = (r >> (n + ~0)) & 1; // 余数是否 >= 一半
-    int lower = r & (half + ~0);     // 一半以下的那些位
-    int sticky = !!lower;            // 是否严格大于一半
-
-    int qodd = (x >> n) & 1;         // quotient 是否为奇数
-
-    int up = guard & (sticky | qodd);
-
+    int up = ((r + half) >> n) &
+             ((!!(r ^ half)) | ((x >> n) & 1));
+//up的条件：r+half>=2^n并且((r不等于half)或者(x/2^n为奇数))
     return down + (up << n);
 }
 
