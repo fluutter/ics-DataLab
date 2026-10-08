@@ -203,8 +203,8 @@ int copyByteWithin(int x, int src, int dst) {
  *   Rating: 4
  */
 int logicalShift(int x, int n) {
-  int t = (~n+1)&31;
-  return (x>>n)&~(~0<<t);
+  int a = ~(((1<<31)>>n)<<1);
+  return (x>>n)&a;
 }
 
 // P6
@@ -266,7 +266,8 @@ int oddParity(int x) {
  */
 int rotateRightBits(int x, int n) {
   int t = (~n + 1) & 31;
-  int y = (x >> n) & ~(~0 << t);
+  int a = ~(((1<<31)>>n)<<1);
+  int y = (x >> n) & a;
   int z = (x & ~(~0 << n)) << t;
   return y | z;
 }
