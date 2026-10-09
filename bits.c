@@ -312,7 +312,7 @@ int midpointTowardFirst(int x, int y) {
 
     int diff = x + (~y + 1);//差
 
-    int gt = (sign & !sx) | (~sign & !(diff >> 31));//x正y负，或者xy同号并且不相等。
+    int gt = (sign & !sx) | (~sign & !(diff >> 31));//x正y负，或者x-y>0。
 
     int base = (x >> 1) + (y >> 1) + ((x & 1) & (y & 1));//（x+y）/2向下取整
 
