@@ -438,18 +438,12 @@ unsigned floatScaleThreeHalves(unsigned uf) {
 
     /* Zero or subnormal */
     if (exp == 0) {
-        unsigned val = frac + (frac >> 1);
+        unsigned product = frac + (frac << 1);
+        unsigned val = product >> 1;
 
-        /*
-         * Round-to-nearest-even.
-         * The discarded bit is the lowest bit of frac.
-         */
-        //if ((frac & 1) && ((val & 1) || (frac & 2)))
-          //  val++;
-
-        /*
-         * A subnormal result may become a normal number.
-         */
+        /* Round to nearest even */
+        if ((product & 1) && (val & 1))
+            val++;
         if (val >= 0x800000) {
             exp = 1;
             frac = val - 0x800000;
@@ -464,28 +458,29 @@ unsigned floatScaleThreeHalves(unsigned uf) {
     {
         unsigned sig = frac | 0x800000;
         unsigned product = sig + (sig << 1);
-        unsigned result = product >> 1;
+        unsigned val;
 
-        /*
-         * Round-to-nearest-even.
-         * product's lowest bit is the discarded bit.
-         */
-        if ((product & 1) && (result & 1))
-            result++;
+        if (product < 0x2000000) {
+            val = product >> 1;
 
-        /*
-         * 10.xxxxx -> 1.0xxxxx × 2
-         */
-        if (result & 0x1000000) {
-            result >>= 1;
+            if ((product & 1) && (val & 1))
+                val++;
+        } else {
             exp++;
+            val = product >> 2;
+
+            {
+                unsigned rem = product & 3;
+
+                if (rem > 2 || (rem == 2 && (val & 1)))
+                    val++;
+            }
         }
 
-        /* Overflow -> infinity */
         if (exp >= 0xFF)
             return sign | 0x7F800000;
 
-        frac = result & 0x7FFFFF;
+        frac = val & 0x7FFFFF;
         return sign | (exp << 23) | frac;
     }
 }
@@ -508,33 +503,37 @@ unsigned floatRoundEven(unsigned uf) {
     unsigned exp = (uf >> 23) & 0xFF;
     unsigned frac = uf & 0x7FFFFF;
 
+    /* NaN or infinity */
     if (exp == 0xFF)
         return uf;
 
-    /* |f| < 1 */
+    /* |f| < 0.5: round to signed zero */
     if (exp < 126)
         return sign;
 
-    /* |f| >= 2^24 */
+    /* 0.5 <= |f| < 1.0 */
+    if (exp == 126) {
+        if (frac == 0)
+            return sign;
+        return sign | 0x3F800000;
+    }
+
+    /* |f| >= 2^23: already an integer */
     if (exp >= 150)
         return uf;
 
     {
-        int E = exp - 127;
-        int shift = 23 - E;
-        unsigned sig = frac | 0x800000;
+        unsigned shift = 150 - exp;
+        unsigned sig = 0x800000 | frac;
         unsigned intpart = sig >> shift;
         unsigned rem = sig & ((1 << shift) - 1);
         unsigned half = 1 << (shift - 1);
 
-        /* round to nearest even */
+        /* Round to nearest, ties to even */
         if (rem > half || (rem == half && (intpart & 1)))
             intpart++;
 
-        /* Convert rounded integer back to float */
-        if (intpart == 0)
-            return sign;
-
+        /* Find the highest set bit of the rounded integer */
         {
             unsigned msb = 0;
             unsigned t = intpart;
@@ -544,32 +543,10 @@ unsigned floatRoundEven(unsigned uf) {
                 msb++;
             }
 
-            {
-                unsigned newexp = (msb + 127) << 23;
-                unsigned newfrac;
-
-                if (msb <= 23) {
-                    newfrac = intpart << (23 - msb);
-                } else {
-                    unsigned s = msb - 23;
-                    unsigned r = intpart & ((1 << s) - 1);
-                    unsigned h = 1 << (s - 1);
-
-                    newfrac = intpart >> s;
-
-                    if (r > h || (r == h && (newfrac & 1)))
-                        newfrac++;
-
-                    if (newfrac == 0x800000) {
-                        newfrac = 0;
-                        newexp += 1 << 23;
-                    }
-
-                    newfrac &= 0x7FFFFF;
-                }
-
-                return sign | newexp | newfrac;
-            }
+            /* Convert the integer back to float */
+            return sign
+                | ((msb + 127) << 23)
+                | ((intpart << (23 - msb)) & 0x7FFFFF);
         }
     }
 }
