@@ -218,7 +218,7 @@ int logicalShift(int x, int n) {
 int swapNibblePairs(int x) {
   int mask = 0xF0 | (0xF0 << 8); 
   mask = mask | (mask << 16); 
-  return ((x & ~mask) << 4) | ((x & mask) >> 4);
+  return ((x & ~mask) << 4) | (((x & mask) >> 4) & ~mask);
 }
 
 // P7
@@ -362,23 +362,24 @@ int isBetweenEitherOrder(int x, int a, int b) {
  */
 int mul5Sat(int x) {
     int top = (x >> 30) & 3;              // x 的最高两位
-    int ov4 = !!((top ^ (top >> 1)) & 1); // x << 2 是否溢出
+    int ov4 = !!((top ^ (top >> 1)) & 1); // x << 2 是否溢出。top=00或11时都不溢出，所以就用异或判断top的两位是否相同。
 
     int y = x << 2;                       // 4x
     int z = y + x;                        // 5x
 
-    int ov5 = ((x ^ z) >> 31) & 1;        // 5x 是否溢出
+    int ov5 = ((y ^ z) >> 31) & 1;        // 5x 是否溢出
+    //只要z和x的符号位不同，就可以判断y+x这一步发生溢出了吗？不是的，可能x和z符号位相同但已经溢出（和y符号位不同）。
     int ov = ov4 | ov5;                   // 总溢出
 
-    int sign = x >> 31;                   // 0: 正数，-1: 负数
+    int sign = x >> 31;                   // 取符号位。0: 正数，-1: 负数
     int mask = ~ov + 1;                   // ov=1 → -1；ov=0 → 0
 
     int min = 1 << 31;                    // INT_MIN
     int max = ~min;                        // INT_MAX
 
-    int sat = (sign & min) | (~sign & max);//🥲
+    int sat = (sign & min) | (~sign & max);//如果溢出那么就取sat，sat根据x的符号分配到时候是min还是max
 
-    return (mask & sat) | (~mask & z);//🥲
+    return (mask & sat) | (~mask & z);//返回最终结果，如果ov那么用sat，如果不ov（mask=0）那么用z
 }
 
 // P14
