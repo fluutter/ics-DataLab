@@ -367,9 +367,10 @@ int mul5Sat(int x) {
     int y = x << 2;                       // 4x
     int z = y + x;                        // 5x
 
-    //int ov5 = ((y ^ z) >> 31) & 1;        // 5x 是否溢出
-    int ov5 = !((y ^ x) >> 31) & ((y ^ z) >> 31);
+    //int ov5 = ((y ^ z) >> 31) & 1;
+    //int ov5 = !((y ^ x) >> 31) & ((y ^ z) >> 31);但((y ^ z) >> 31)可能返回-1，不行
     //只要z和x的符号位不同，就可以判断y+x这一步发生溢出了吗？不是的，可能x和z符号位相同但已经溢出（和y符号位不同）。
+    int ov5 = (!((y ^ x) >> 31)) & (!!((y ^ z) >> 31));
     int ov = ov4 | ov5;                   // 总溢出
 
     int sign = x >> 31;                   // 取符号位。0: 正数，-1: 负数
@@ -595,9 +596,9 @@ unsigned float_i2f(int x) {
 
     if (x < 0) {
         sign = 0x80000000;
-        absx = (unsigned)(~x + 1);
+        absx = (~x + 1);
     } else {
-        absx = (unsigned)x;
+        absx = x;
     }
 
     /* Find the position of the highest 1 bit */
