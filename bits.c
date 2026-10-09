@@ -361,8 +361,8 @@ int isBetweenEitherOrder(int x, int a, int b) {
  *   Rating: 7
  */
 int mul5Sat(int x) {
-    int top = (x >> 30) & 3;              // x 的最高两位
-    int ov4 = !!((top ^ (top >> 1)) & 1); // x << 2 是否溢出。top=00或11时都不溢出，所以就用异或判断top的两位是否相同。
+    int top = (x >> 29) & 7;              // x 的最高3位
+    int ov4 = !!((top ^ (top >> 1)) & 3); // x << 2 是否溢出。top=000或111时都不溢出，所以就用异或判断top的3位是否相同。
 
     int y = x << 2;                       // 4x
     int z = y + x;                        // 5x
@@ -444,8 +444,8 @@ unsigned floatScaleThreeHalves(unsigned uf) {
          * Round-to-nearest-even.
          * The discarded bit is the lowest bit of frac.
          */
-        if ((frac & 1) && ((val & 1) || (frac & 2)))
-            val++;
+        //if ((frac & 1) && ((val & 1) || (frac & 2)))
+          //  val++;
 
         /*
          * A subnormal result may become a normal number.
